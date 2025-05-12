@@ -1,0 +1,49 @@
+[project]
+name = "fast-voice-clone"
+version = "0.1.0"
+readme = "README.md"
+description = "Interview for DeepGram"
+authors = [
+    {name="Auke Wiggers", email="wiggers.auke@gmail.com"},
+]
+requires-python = ">=3.11.11"
+
+dependencies = [
+    "accelerate>=1.5.2",
+    "deepgram-sdk==4.0.0",
+    "fire>=0.7.0",
+    "lmstudio>=1.2.0",
+    "Jinja2>=3.1.6",
+    "librosa>=0.11.0",
+    "matplotlib>=3.10.1",
+    "mlx>=0.25.1",
+    "mlx-lm>=0.24.0",
+    "mlx-audio>=0.1.0",
+    "pandas>=2.2.3",
+    "plotly>=6.0.1",
+    "setuptools>=78.1.0",
+    "transformers>=4.50.1",
+    "torch>=2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.0",
+]
+
+[tool.coverage.run]
+source = ["mtb"]
+branch = true  
+
+[tool.coverage.report]
+exclude_lines = [
+    "raise NotImplementedError"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
