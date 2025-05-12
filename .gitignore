@@ -1,0 +1,16 @@
+# Data folder, add your own..
+data/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Env file, may contain secrets
+.env
