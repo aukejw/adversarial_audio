@@ -12,6 +12,7 @@ dependencies = [
     "accelerate>=1.5.2",
     "deepgram-sdk==4.0.0",
     "fire>=0.7.0",
+    "ipython>=9.2.0",
     "lmstudio>=1.2.0",
     "Jinja2>=3.1.6",
     "librosa>=0.11.0",
