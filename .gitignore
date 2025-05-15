@@ -1,5 +1,12 @@
 # Data folder, add your own..
 data/
+.DS_Store
+
+# IDE files
+.vscode
+
+# Output folders
+analysis/
 
 # Python-generated files
 __pycache__/
