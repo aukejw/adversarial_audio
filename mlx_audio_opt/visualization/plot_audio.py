@@ -4,10 +4,16 @@ from typing import Any, Dict, List, Union
 
 import librosa
 import matplotlib.pyplot as plt
+import mlx.core as mx
 import numpy as np
 
-import mlx_audio_opt.stt.deepgram
-import mlx_audio_opt.stt.whisper
+from mlx_audio_opt.stt import deepgram, whisper
+
+__all__ = [
+    "visualize_audio",
+    "plot_transcription",
+    "compare_spectrograms",
+]
 
 
 def visualize_audio(
@@ -49,13 +55,14 @@ def visualize_audio(
         n_mels=128,  # number of Mel bands
     )
     axes[1].set_title("Mel Spectrogram")
-    librosa.display.specshow(
+    img = librosa.display.specshow(
         librosa.power_to_db(mel_spectrogram, ref=np.max),
         sr=sampling_rate,
         x_axis="time",
         y_axis="mel",
         ax=axes[1],
     )
+    fig.colorbar(img, ax=axes[1], format="%+2.f dB")
 
     # Plot transcription as barchart with confidence scores
     for i, (name, transcription_file) in enumerate(transcription_files.items()):
@@ -67,13 +74,9 @@ def visualize_audio(
             transcription = json.load(f)
 
         if "nova" in transcription_file.name:
-            transcribed_words = mlx_audio_opt.stt.deepgram.get_words_from_transcription(
-                transcription
-            )
+            transcribed_words = deepgram.get_words_from_transcription(transcription)
         elif "whisper" in transcription_file.name:
-            transcribed_words = mlx_audio_opt.stt.whisper.get_words_from_transcription(
-                transcription
-            )
+            transcribed_words = whisper.get_words_from_transcription(transcription)
         else:
             raise NotImplementedError(
                 f"Not sure how to handle transcription '{transcription_file.name}'"
@@ -111,7 +114,7 @@ def plot_transcription(
         word_confidence: float = word_dict["confidence"]
         punctuated_word: str = word_dict["word"].strip()
 
-        # Show the words
+        # Show the words as distinctly colored bars, height = confidence
         bar_width = word_end - word_start
         x_center = word_start + bar_width / 2
         ax.bar(
@@ -136,3 +139,43 @@ def plot_transcription(
     ax.set_xlabel("Time (seconds)")
     ax.set_ylabel("Confidence")
     return
+
+
+def compare_spectrograms(
+    magnitudes1: mx.array,
+    magnitudes2: mx.array,
+    title1: str,
+    title2: str,
+    suptitle: str,
+) -> plt.Figure:
+    """Create a visual comparison of two spectrograms.
+
+    Args:
+        magnitudes1: The first spectrogram magnitudes (power=1).
+        magnitudes2: The second spectrogram magnitudes (power=1).
+        title1: The title for the first spectrogram.
+        title2: The title for the second spectrogram.
+
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(10, 3 * 4))
+    fig.suptitle(suptitle)
+
+    for spectrogram, ax, title in [
+        (magnitudes1, axes[0], title1),
+        (magnitudes2, axes[1], title2),
+        (magnitudes1 - magnitudes2, axes[2], "Difference"),
+    ]:
+        image = ax.imshow(
+            spectrogram,
+            aspect="auto",
+            origin="lower",
+            interpolation="nearest",
+            cmap="inferno",
+        )
+        ax.set_title(title)
+        ax.set_ylabel("Mel frequency")
+        ax.set_xlabel("Time (frames)")
+        fig.colorbar(image, ax=ax)
+
+    plt.tight_layout()
+    return fig
