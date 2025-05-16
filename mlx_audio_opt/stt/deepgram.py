@@ -22,12 +22,6 @@ def transcribe_audio(
     """
 
     wav_file = Path(wav_file)
-    output_folder = Path(output_folder)
-    output_file = output_folder / "transcription_nova-3.json"
-
-    if output_file.exists():
-        print(f"Transcription already exists: {output_file}")
-        return
 
     deepgram = DeepgramClient()
     options = PrerecordedOptions(
