@@ -1,38 +1,42 @@
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import librosa
 import matplotlib.pyplot as plt
 import mlx.core as mx
 import numpy as np
 
-from mlx_audio_opt.stt import deepgram, whisper
+from mlx_audio_opt.stt.transcription import Transcription
 
 __all__ = [
     "visualize_audio",
-    "plot_transcription",
+    "plot_transcription_words",
     "compare_spectrograms",
 ]
 
 
 def visualize_audio(
     wav_file: Union[str, Path],
-    **transcription_files: Dict[str, Path],
+    sampling_rate: Optional[int],
+    **transcriptions: Dict[str, Transcription],
 ) -> plt.Figure:
     """Visualize the audio data.
 
     Args:
         wav_file: The path to the audio file.
-        transcription_files: The path to transcription files.
+        sampling_rate: The sampling rate of the audio file.
+        transcription: The transcriptoins or a path to their files.
 
     Returns:
         The matplotlib figure.
 
     """
-    audio_series, sampling_rate = librosa.load(wav_file, sr=None)
+    audio_series, sampling_rate = librosa.load(
+        wav_file,
+        sr=sampling_rate,
+    )
 
-    num_rows = 2 + len(transcription_files)
+    num_rows = 2 + len(transcriptions)
     fig, axes = plt.subplots(num_rows, 1, figsize=(10, num_rows * 3))
     fig.suptitle(f"Original audio of {wav_file.name}")
 
@@ -65,24 +69,12 @@ def visualize_audio(
     fig.colorbar(img, ax=axes[1], format="%+2.f dB")
 
     # Plot transcription as barchart with confidence scores
-    for i, (name, transcription_file) in enumerate(transcription_files.items()):
-        ax = axes[2 + i]
-        ax.set_title(name)
-        ax.grid(True)
-
-        with transcription_file.open("r") as f:
-            transcription = json.load(f)
-
-        if "nova" in transcription_file.name:
-            transcribed_words = deepgram.get_words_from_transcription(transcription)
-        elif "whisper" in transcription_file.name:
-            transcribed_words = whisper.get_words_from_transcription(transcription)
-        else:
-            raise NotImplementedError(
-                f"Not sure how to handle transcription '{transcription_file.name}'"
-            )
-
-        plot_transcription(ax=ax, words=transcribed_words)
+    for index, (name, transcription) in enumerate(transcriptions.items()):
+        plot_transcription_words(
+            ax=axes[2 + index],
+            title=name,
+            words=transcription.get_words(),
+        )
 
     # Clear up the plots
     num_seconds = audio_series.shape[0] / sampling_rate
@@ -97,8 +89,9 @@ def visualize_audio(
     return fig
 
 
-def plot_transcription(
+def plot_transcription_words(
     ax: plt.Axes,
+    title: str,
     words: List[Dict[str, Any]],
 ) -> None:
     """Plot the words with confidence scores.
@@ -108,6 +101,9 @@ def plot_transcription(
         words: List of word predictions.
 
     """
+    ax.grid(True)
+    ax.set_title(title)
+
     for word_dict in words:
         word_start: float = word_dict["start"]
         word_end: float = word_dict["end"]
