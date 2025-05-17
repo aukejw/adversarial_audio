@@ -1,22 +1,20 @@
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Dict, Union
 
+import mlx.core as mx
 import mlx_whisper
-from mlx_whisper.tokenizer import Tokenizer
+import mlx_whisper.whisper
 
-from mlx_audio_opt.file_io import try_load_json
+from mlx_audio_opt.audio.stft import magnitudes_to_log_mel_spectrogram
 
 __all__ = [
     "transcribe_audio",
-    "get_text_from_transcription",
-    "get_words_from_transcription",
-    "get_tokens_from_transcription",
 ]
 
 
 def transcribe_audio(
     wav_file: Union[str, Path],
-    model_id: str = "mlx-community/whisper-large-v3-turbo",
+    model_id: str = "mlx-community/whisper-small-mlx",
     fp16: bool = True,
     word_timestamps: bool = True,
     **kwargs,
@@ -45,73 +43,43 @@ def transcribe_audio(
     return transcription
 
 
-def get_text_from_transcription(
-    transcription: Union[Dict[str, Any], str, Path],
-) -> Dict[str, Union[str, list]]:
-    """Get the text from the given transcription.
+def get_log_probabilities(
+    model: mlx_whisper.whisper.Whisper,
+    magnitudes: mx.array,
+    tokens: mx.array,
+):
+    """Get the logprobs of the given tokens for given audio.
 
     Args:
-        transcription: The transcription dictionary.
+        model: The Whisper model.
+        magnitudes: The magnitudes of the audio.
+        tokens: The tokens to get the logprobs for.
 
     Returns:
-        A dictionary containing the text and its segments.
+        The logprobs of the given tokens.
 
     """
-    transcription = try_load_json(transcription)
-    return transcription["text"]
+    mel = magnitudes_to_log_mel_spectrogram(
+        magnitudes**2,
+        n_mels=model.dims.n_mels,
+    )
 
+    # encode audio, decode logits
+    mel = mel[None]
+    audio_features = model.encoder(mel)
+    logits, kv_cache, _ = model.decoder(tokens, audio_features)
 
-def get_words_from_transcription(
-    transcription: Union[Dict[str, Any], str, Path],
-) -> Dict[str, Union[str, list]]:
-    """Get the words from the given transcription.
+    # stable log softmax
+    log_probs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
 
-    Args:
-        transcription: The transcription dictionary.
+    # Quick sanity check
+    log_probs = mx.squeeze(log_probs)
+    num_tokens = tokens.shape[1]
+    vocab_size = model.dims.n_vocab
+    assert log_probs.shape == (num_tokens, vocab_size), log_probs.shape
 
-    Returns:
-        A dictionary containing the words and their timestamps and confidence.
+    # select the log probabilities of the token sequence, p(tokens|audio)
+    log_probs = log_probs[mx.arange(num_tokens), tokens[0]]
+    assert log_probs.shape == (num_tokens,), log_probs.shape
 
-    """
-    transcription = try_load_json(transcription)
-
-    transcribed_words = []
-    for segment in transcription["segments"]:
-        for word in segment["words"]:
-            transcribed_words.append(
-                dict(
-                    word=word["word"],
-                    start=word["start"],
-                    end=word["end"],
-                    confidence=word["probability"],
-                )
-            )
-    return transcribed_words
-
-
-def get_tokens_from_transcription(
-    tokenizer: Tokenizer,
-    transcription: Union[Dict[str, Any], str, Path],
-    add_eot_token: bool = True,
-) -> List[int]:
-    """Get the tokens from the given transcription.
-
-    Args:
-        transcription: The transcription dictionary.
-
-    Returns:
-        A list of tokens for each segment (including sot, eot).
-
-    """
-    transcription = try_load_json(transcription)
-
-    transcribed_tokens = []
-    for segment in transcription["segments"]:
-        transcribed_tokens.extend(segment["tokens"])
-
-    # add sot and eot tokens
-    tokens = list(tokenizer.sot_sequence) + transcribed_tokens
-    if add_eot_token:
-        tokens = tokens + [tokenizer.eot]
-
-    return tokens
+    return log_probs
