@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Dict, Union
 
@@ -7,14 +6,15 @@ import fire
 import mlx_audio_opt.stt.deepgram
 import mlx_audio_opt.stt.whisper
 from mlx_audio_opt import REPO_ROOT
+from mlx_audio_opt.file_io import to_json
+from mlx_audio_opt.stt.transcription import DeepgramTranscription, WhisperTranscription
 
-data_folder = REPO_ROOT / "data"
-output_folder = REPO_ROOT / "analysis"
+OUTPUT_FOLDER = REPO_ROOT / "analysis"
 
 
 def main(
-    data_folder: Union[str, Path] = data_folder,
-    output_folder: Union[str, Path] = output_folder,
+    wav_file: Union[str, Path],
+    output_folder: Union[str, Path] = OUTPUT_FOLDER,
     model_id: str = "nova-3",
 ):
     """Analyze audio files in the data folder.
@@ -22,41 +22,48 @@ def main(
     Args:
         data_folder: The folder containing the audio files.
         output_folder: The folder to save the transcriptions to.
-        model_type: Type of model to use for transcription.
-            For example, options "nova-3" or "whisper-large-v3-turbo".
+        model_id: Identifier for model to use for transcription.
+            Options include "nova2", "nova-3", "mlx-community/whisper-large-v3-turbo"
 
     """
-    for wav_file in Path(data_folder).glob("*.wav"):
-        print(f"Analyzing {wav_file}...")
+    wav_file = Path(wav_file)
+    output_folder = Path(output_folder)
+    print(f"Transcribing {wav_file}...")
+    print(f"  model_id: {model_id}")
 
-        wav_file_output_folder = output_folder / wav_file.stem / "1_transcribe_audio"
-        output_file = wav_file_output_folder / f"transcription_{model_id}.json"
-        if output_file.exists():
-            print(f"Transcription already exists: {output_file}")
-            continue
+    if model_id.startswith("mlx-community/"):
+        model_id = model_id.replace("mlx-community/", "")
 
-        if "nova" in model_id:
-            response: Dict = mlx_audio_opt.stt.deepgram.transcribe_audio(
-                wav_file=wav_file,
-                model_id=model_id,
-            )
-        elif "whisper" in model_id:
-            if not model_id.startswith("mlx_community/"):
-                model_id = f"mlx-community/{model_id}"
-            response: Dict = mlx_audio_opt.stt.whisper.transcribe_audio(
-                wav_file=wav_file,
-                model_id=f"mlx-community/{model_id}",
-            )
-        else:
-            raise NotImplementedError(f"Model_id '{model_id}' not implemented")
+    wav_file_output_folder = output_folder / wav_file.stem / "1_transcribe_audio"
+    output_file = wav_file_output_folder / f"transcription_{model_id}.json"
 
-        wav_file_output_folder.mkdir(parents=True, exist_ok=True)
-        with open(output_file, "w") as f:
-            json.dump(response, f, indent=4)
+    if output_file.exists():
+        print(f"Transcription already exists: {output_file}")
+        return output_file
 
-        print(f"Transcription saved to '{output_file}'")
+    if "nova" in model_id:
+        response: Dict = mlx_audio_opt.stt.deepgram.transcribe_audio(
+            wav_file=wav_file,
+            model_id=model_id,
+        )
+        transcription = DeepgramTranscription(response)
 
-    return
+    elif "whisper" in model_id:
+        response: Dict = mlx_audio_opt.stt.whisper.transcribe_audio(
+            wav_file=wav_file,
+            model_id=f"mlx-community/{model_id}",
+        )
+        transcription = WhisperTranscription(response)
+
+    else:
+        raise NotImplementedError(f"Model_id '{model_id}' not implemented")
+
+    print(f"Transcription: {transcription.get_text()}")
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    to_json(dictionary=response, output_file=output_file, verbose=True)
+
+    return output_file
 
 
 if __name__ == "__main__":
