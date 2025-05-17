@@ -5,6 +5,7 @@ import fire
 import matplotlib.pyplot as plt
 
 from mlx_audio_opt import REPO_ROOT
+from mlx_audio_opt.stt.transcription import get_transcription
 from mlx_audio_opt.visualization.plot_audio import visualize_audio
 
 data_folder = REPO_ROOT / "data"
@@ -12,7 +13,7 @@ output_folder = REPO_ROOT / "analysis"
 
 
 def main(
-    data_folder: Union[str, Path] = data_folder,
+    wav_file: Union[str, Path],
     output_folder: Union[str, Path] = output_folder,
 ):
     """Analyze audio files in the data folder.
@@ -22,35 +23,30 @@ def main(
         output_folder: The folder to save the analysis results to.
 
     """
-    for wav_file in Path(data_folder).glob("*.wav"):
-        print(f"Visualizing {wav_file}...")
+    wav_file = Path(wav_file)
+    output_folder = Path(output_folder)
+    print(f"Visualizing {wav_file}...")
 
-        wav_file_output_folder = output_folder / wav_file.stem / "2_visualize_audio"
-        wav_file_output_folder.mkdir(parents=True, exist_ok=True)
+    wav_file_output_folder = output_folder / wav_file.stem / "2_visualize_audio"
+    wav_file_output_folder.mkdir(parents=True, exist_ok=True)
 
-        output_file = wav_file_output_folder / "original_audio.png"
-        if output_file.exists():
-            print(f"Already visualized {wav_file}. Skipping...")
-            continue
+    kwargs = dict(
+        wav_file=wav_file,
+        sampling_rate=None,
+    )
 
-        kwargs = dict(wav_file=wav_file)
+    transcription_folder = wav_file_output_folder.parent / "1_transcribe_audio"
+    for transcription_path in transcription_folder.glob("transcription_*.json"):
+        name = transcription_path.stem.replace("transcription_", "")
+        kwargs[name] = get_transcription(transcription_path)
+        print(f"  found transcription '{transcription_path}'")
 
-        for transcription_name in [
-            "transcription_nova-3.json",
-            "transcription_whisper-large-v3-turbo.json",
-        ]:
-            transcription_path = wav_file_output_folder / transcription_name
-            if transcription_path.exists():
-                kwargs[transcription_path.name] = transcription_path
-                print(f"  found transcription '{transcription_path}'")
+    visualize_audio(**kwargs)
 
-        fig = visualize_audio(**kwargs)
-
-        plt.savefig(output_file, bbox_inches="tight", dpi=300)
-        print(f"Saved figure to '{output_file}'")
-        plt.close()
-
-    return
+    output_file = wav_file_output_folder / "original_audio.png"
+    plt.savefig(output_file, bbox_inches="tight", dpi=300)
+    print(f"Saved figure to '{output_file}'")
+    plt.close()
 
 
 if __name__ == "__main__":
