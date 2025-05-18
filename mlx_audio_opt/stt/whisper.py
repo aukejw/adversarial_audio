@@ -1,24 +1,27 @@
 from pathlib import Path
-from typing import Dict, Union
+from typing import Union
 
 import mlx.core as mx
 import mlx_whisper
 import mlx_whisper.whisper
+from mlx_whisper.audio import N_FRAMES, pad_or_trim
 
 from mlx_audio_opt.audio.stft import magnitudes_to_log_mel_spectrogram
+from mlx_audio_opt.stt.transcription import WhisperTranscription
 
 __all__ = [
     "transcribe_audio",
+    "get_log_probabilities",
 ]
 
 
 def transcribe_audio(
-    wav_file: Union[str, Path],
+    audio: Union[str, Path, mx.array],
     model_id: str = "mlx-community/whisper-small-mlx",
     fp16: bool = True,
     word_timestamps: bool = True,
     **kwargs,
-) -> Dict:
+) -> WhisperTranscription:
     """Transcribe the given audio file using the specified model.
 
     Args:
@@ -26,27 +29,30 @@ def transcribe_audio(
         model_id: The model_id (e.g. HF) of the STT model.
 
     Returns:
-        A dictionary containing the transcription results. Should contain
-        text (raw transcription), segments (sentences) and language (en for English).
+        A transcription result.
 
     """
-    assert Path(wav_file).exists(), f"Audio file '{wav_file}' does not exist"
+    if isinstance(audio, (str, Path)):
+        if not Path(audio).exists():
+            raise ValueError(f"Audio file '{audio}' does not exist")
+        audio = Path(audio).as_posix()
 
     transcription = mlx_whisper.transcribe(
-        audio=str(wav_file),
+        audio=audio,
         path_or_hf_repo=model_id,
         fp16=fp16,
         word_timestamps=word_timestamps,
         task="transcribe",
         **kwargs,
     )
-    return transcription
+    return WhisperTranscription(transcription)
 
 
 def get_log_probabilities(
     model: mlx_whisper.whisper.Whisper,
     magnitudes: mx.array,
     tokens: mx.array,
+    n_frames: int = N_FRAMES,
 ):
     """Get the logprobs of the given tokens for given audio.
 
@@ -59,27 +65,55 @@ def get_log_probabilities(
         The logprobs of the given tokens.
 
     """
+    # mlx_whisper does something interesting here:
+    # - pad the audio to N_SAMPLES
+    # - crop the mel specotrgram (usually to N_FRAMES)
+    # - then pad the mel spectrogram
+    #
+    # We have already padded the audio, resulting in many
+    # more frames than N_FRAMES. Means we need to crop too!
+    # If we don't, we'll see float16 overflow.
     mel = magnitudes_to_log_mel_spectrogram(
-        magnitudes**2,
+        magnitudes,
         n_mels=model.dims.n_mels,
     )
 
-    # encode audio, decode logits
-    mel = mel[None]
+    # first trim
+    content_frames = mel.shape[-2] - n_frames
+    content_frames = min(n_frames, content_frames)
+    mel = mel[0:content_frames]
+
+    # then pad the log mel spectrogram
+    mel = pad_or_trim(mel, n_frames, axis=-2)
+    mel = mel.astype(mx.float16)
+
+    if mel.ndim == 2:
+        mel = mel[None]
+
     audio_features = model.encoder(mel)
     logits, kv_cache, _ = model.decoder(tokens, audio_features)
 
     # stable log softmax
+    logits = logits.astype(mx.float32)
     log_probs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
 
     # Quick sanity check
     log_probs = mx.squeeze(log_probs)
-    num_tokens = tokens.shape[1]
+    b, num_tokens = tokens.shape
     vocab_size = model.dims.n_vocab
+    assert b == 1, "We can only handle batch size 1 here"
     assert log_probs.shape == (num_tokens, vocab_size), log_probs.shape
 
     # select the log probabilities of the token sequence, p(tokens|audio)
-    log_probs = log_probs[mx.arange(num_tokens), tokens[0]]
-    assert log_probs.shape == (num_tokens,), log_probs.shape
+    # the first entry is the probability of the second token
+    # the third entry is the probability of the fourth token
+    # etc
+    next_tokens = tokens[0, 1:]
+    log_probs = log_probs[mx.arange(num_tokens - 1), next_tokens]
+    # we assume the first token is always start-of-sentence here, with probability 1
+    log_probs = mx.concat((mx.zeros((1,), dtype=log_probs.dtype), log_probs), axis=0)
+    assert log_probs.shape == (
+        num_tokens,
+    ), f"log_probs.shape={log_probs.shape}, but must be ({num_tokens},)"
 
     return log_probs

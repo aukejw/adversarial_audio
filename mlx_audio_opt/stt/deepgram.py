@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union
 
 from dotenv import load_dotenv
 
 from deepgram import DeepgramClient, FileSource, PrerecordedOptions
+from mlx_audio_opt.stt.transcription import DeepgramTranscription
 
 __all__ = [
     "transcribe_audio",
@@ -14,7 +15,7 @@ __all__ = [
 def transcribe_audio(
     wav_file: Union[str, Path],
     model_id: str = "nova-3",
-) -> Dict[str, Any]:
+) -> DeepgramTranscription:
     """Transcribe audio data using the Deepgram API.
 
     Args:
@@ -22,8 +23,7 @@ def transcribe_audio(
         model_id: The model_id (e.g. HF) of the STT model.
 
     Returns:
-        A dictionary containing the transcription results.
-        For the format, see
+        A transcription result. For the format, also see
         https://developers.deepgram.com/reference/speech-to-text-api/listen
 
     """
@@ -48,4 +48,4 @@ def transcribe_audio(
         response = deepgram.listen.rest.v("1").transcribe_file(payload, options)
     response = response.to_dict()
 
-    return response
+    return DeepgramTranscription(response)
