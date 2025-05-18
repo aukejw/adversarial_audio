@@ -3,15 +3,23 @@ from typing import Tuple, Union
 import librosa
 import mlx.core as mx
 import numpy as np
-from mlx_whisper.audio import HOP_LENGTH, N_FFT, hanning, mel_filters, stft
+from mlx_whisper.audio import HOP_LENGTH, N_FFT, N_SAMPLES, hanning, mel_filters, stft
 
 from mlx_audio_opt.audio.spectrogram import Spectrogram
 
+__all__ = [
+    "get_magnitude_and_phase",
+    "reconstruct_audio_from_magnitude_and_phase",
+    "magnitudes_to_log_mel_spectrogram",
+]
 
-def get_phase_and_magnitudes(
+
+def get_magnitude_and_phase(
     audio_series: Union[mx.array, np.ndarray],
     n_fft: int = N_FFT,
     hop_length: int = HOP_LENGTH,
+    pad_audio: int = N_SAMPLES,
+    remove_last_frame: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Whisper-compliant STFT of the audio signal.
 
@@ -22,12 +30,14 @@ def get_phase_and_magnitudes(
         sampling_rate: The sampling rate of the audio.
 
     Returns:
-        magnitudes: The magnitudes (power=1).
-        phase: The phase, obtained using np.angle.
+        magnitudes: The magnitudes (power=1), num_frequencies x num_frames.
+        phase: The phase, obtained using np.angle, num_frequences x num_frames.
 
     """
     if isinstance(audio_series, np.ndarray):
-        audio_seriesj = mx.array(audio_series)
+        audio_series = mx.array(audio_series)
+    if pad_audio > 0:
+        audio_series = mx.pad(audio_series, (0, pad_audio))
 
     window = hanning(n_fft)
 
@@ -37,16 +47,17 @@ def get_phase_and_magnitudes(
         window=window,
         nperseg=n_fft,
         noverlap=hop_length,
-    ).T
+    )
 
-    # mlx does not support angle and direct conversion to np complex fails,
-    # so we convert to numpy in a roundabout way
-    real = np.array(mx.real(complex_spectrogram))
-    imag = np.array(mx.imag(complex_spectrogram))
-    complex_spectrogram = real + 1j * imag
+    # mlx does not support angle, so we convert to numpy
+    magnitudes = np.abs(complex_spectrogram).T
+    phase = np.angle(complex_spectrogram).T
 
-    magnitudes = np.abs(complex_spectrogram)
-    phase = np.angle(complex_spectrogram)
+    # whisper chops off the last frame!
+    if remove_last_frame:
+        magnitudes = magnitudes[:, :-1]
+        phase = phase[:, :-1]
+
     return magnitudes, phase
 
 
@@ -56,6 +67,7 @@ def reconstruct_audio_from_magnitude_and_phase(
     n_fft: int = N_FFT,
     hop_length: int = HOP_LENGTH,
     window: Union[str, np.ndarray] = "hann",
+    length: int = None,
     **stft_kwargs,
 ):
     """Reconstruct audio from the given magnitudes and phase.
@@ -71,6 +83,8 @@ def reconstruct_audio_from_magnitude_and_phase(
         The number of FFT points.
     hop_length: int
         The number of samples between frames.
+    length: int
+        The length of the output audio. If None, the length is inferred.
 
     Returns
     -------
@@ -87,13 +101,14 @@ def reconstruct_audio_from_magnitude_and_phase(
 
     # librosa expects (M, n_frames) shape
     complex_spectrogram = magnitudes * np.exp(1j * phase)
-    complex_spectrogram = complex_spectrogram.T
 
     audio = librosa.istft(
         complex_spectrogram,
         n_fft=n_fft,
         hop_length=hop_length,
         window=window,
+        length=length,
+        center=False,
         **stft_kwargs,
     )
     return audio
@@ -114,7 +129,7 @@ def magnitudes_to_log_mel_spectrogram(
 
     """
     filters = mel_filters(n_mels)
-    mel_spec = magnitudes @ filters.T
+    mel_spec = magnitudes.square() @ filters.T
 
     log_spec = mx.maximum(mel_spec, 1e-10).log10()
     log_spec = mx.maximum(log_spec, log_spec.max() - 8.0)
