@@ -13,13 +13,13 @@ __all__ = [
 
 
 def transcribe_audio(
-    wav_file: Union[str, Path],
+    audio: Union[str, Path],
     model_id: str = "nova-3",
 ) -> DeepgramTranscription:
     """Transcribe audio data using the Deepgram API.
 
     Args:
-        wav_file: The path to the audio file.
+        audio: The audio, as file or as array.
         model_id: The model_id (e.g. HF) of the STT model.
 
     Returns:
@@ -27,7 +27,13 @@ def transcribe_audio(
         https://developers.deepgram.com/reference/speech-to-text-api/listen
 
     """
-    wav_file = Path(wav_file)
+    if isinstance(audio, (str, Path)):
+        audio = Path(audio)
+        with open(audio, "rb") as source:
+            buffer_data = source.read()
+
+    else:
+        raise TypeError(f"audio must be str, Path, but got {type(audio)}")
 
     load_dotenv()
     deepgram = DeepgramClient(
@@ -38,14 +44,10 @@ def transcribe_audio(
         smart_format=True,
         summarize="v2",
     )
-    with open(wav_file, "rb") as source:
-        buffer_data = source.read()
-
     payload: FileSource = {
         "buffer": buffer_data,
     }
-    with open(wav_file, "rb") as source:
-        response = deepgram.listen.rest.v("1").transcribe_file(payload, options)
+    response = deepgram.listen.rest.v("1").transcribe_file(payload, options)
     response = response.to_dict()
 
     return DeepgramTranscription(response)
