@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Optional, Self, Union
 
 import mlx.core as mx
 import numpy as np
@@ -14,7 +14,7 @@ class Spectrogram:
 
     def __init__(
         self,
-        magnitudes: np.ndarray,
+        magnitudes: Union[np.ndarray, mx.array],
         phase: Optional[np.ndarray] = None,
     ):
         self.magnitudes = magnitudes
