@@ -32,30 +32,30 @@ You will need:
 
 To investigate audio optimization we include one audio file from [freesound.org]: [ExcessiveExposure.wav by acclivity -- https://freesound.org/s/33711/ -- License: Attribution NonCommercial 4.0](https://freesound.org/people/acclivity/sounds/33711/).
 
-For best results, run all scripts in order. 
+We provide scripts for transcription, visualization and optimization of the audio. For best results, run them in order.
+
+To run all three on the given example file, you can use:
+```
+make run
+```
 
 Each script will create files in the `analysis` folder, using the `.wav` filename as subfolder.
 
 1. Transcribe audio, using either the Deepgram API or local Whisper
    ```
    # deepgram
-   uv run scripts/1_transcribe_audio.py --model_id nova-3
+   uv run scripts/1_transcribe_audio.py --model_id nova-3 --wav_file <wav_file>
 
    # whisper
-   uv run scripts/1_transcribe_audio.py --model_id mlx_community/whisper-large-v3-turbo
+   uv run scripts/1_transcribe_audio.py --model_id mlx_community/whisper-small-mlx --wav_file <wav_file>
    ```
 
 2. Visualize spectrograms and the resulting transcriptions:
    ```
-   uv run scripts/2_visualize_audio.py
+   uv run scripts/2_visualize_audio.py --wav_file <wav_file>
    ```
 
-3. Optimize audio based on the Whisper model:
+3. Optimize audio to confuse a specific Whisper model:
    ```
-   uv run scripts/4_optimize_audio.py
-   ```
-
-4. Optionally, we can use the transcriptions for voice cloning too:
-   ```
-   uv run scripts/3_generate_audio.py --tts_model_id mlx_community/Dia-1.6B
+   uv run scripts/3_optimize_audio.py --model_id mlx_community/whisper-small-mlx --wav_file <wav_file>
    ```
