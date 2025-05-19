@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
 import librosa
 import matplotlib.pyplot as plt
@@ -7,10 +7,10 @@ import mlx.core as mx
 import numpy as np
 
 from mlx_audio_opt.stt.transcription import Transcription
+from mlx_audio_opt.visualization.plot_transcription import plot_transcription_words
 
 __all__ = [
     "visualize_audio",
-    "plot_transcription_words",
     "compare_spectrograms",
 ]
 
@@ -38,7 +38,7 @@ def visualize_audio(
 
     num_rows = 2 + len(transcriptions)
     fig, axes = plt.subplots(num_rows, 1, figsize=(10, num_rows * 3))
-    fig.suptitle(f"Original audio of {wav_file.name}")
+    fig.suptitle(f"Audio file {wav_file.name}")
 
     # Plot original waveform
     axes[0].set_title("Waveform")
@@ -85,56 +85,8 @@ def visualize_audio(
         ax.set_xticklabels(xticks)
         ax.set_xlabel("Time (seconds)")
 
-    plt.tight_layout()
+    fig.tight_layout()
     return fig
-
-
-def plot_transcription_words(
-    ax: plt.Axes,
-    title: str,
-    words: List[Dict[str, Any]],
-) -> None:
-    """Plot the words with confidence scores.
-
-    Args:
-        ax: The matplotlib axes to plot on.
-        words: List of word predictions.
-
-    """
-    ax.grid(True)
-    ax.set_title(title)
-
-    for word_dict in words:
-        word_start: float = word_dict["start"]
-        word_end: float = word_dict["end"]
-        word_confidence: float = word_dict["confidence"]
-        punctuated_word: str = word_dict["word"].strip()
-
-        # Show the words as distinctly colored bars, height = confidence
-        bar_width = word_end - word_start
-        x_center = word_start + bar_width / 2
-        ax.bar(
-            x=x_center,
-            height=word_confidence,
-            width=bar_width,
-            align="center",
-            alpha=0.7,
-        )
-
-        # Add rotated word label
-        ax.text(
-            x=x_center,
-            y=0.02,
-            s=punctuated_word,
-            rotation=90,
-            ha="center",
-            va="bottom",
-        )
-
-    ax.set_ylim(0, 1.1)  # Set y-axis limit for confidence (0-1)
-    ax.set_xlabel("Time (seconds)")
-    ax.set_ylabel("Confidence")
-    return
 
 
 def compare_spectrograms(
@@ -142,15 +94,18 @@ def compare_spectrograms(
     magnitudes2: mx.array,
     title1: str,
     title2: str,
+    ylabel: str,
     suptitle: str,
 ) -> plt.Figure:
-    """Create a visual comparison of two spectrograms.
+    """Create a visual comparison of two spectrogram-like inputs.
 
     Args:
         magnitudes1: The first spectrogram magnitudes (power=1).
         magnitudes2: The second spectrogram magnitudes (power=1).
         title1: The title for the first spectrogram.
         title2: The title for the second spectrogram.
+        ylabel: The label for the y-axis.
+        suptitle: The title for the entire figure.
 
     """
     fig, axes = plt.subplots(3, 1, figsize=(10, 3 * 4))
@@ -169,9 +124,9 @@ def compare_spectrograms(
             cmap="inferno",
         )
         ax.set_title(title)
-        ax.set_ylabel("Mel frequency")
+        ax.set_ylabel(ylabel)
         ax.set_xlabel("Time (frames)")
         fig.colorbar(image, ax=ax)
 
-    plt.tight_layout()
+    fig.tight_layout()
     return fig
