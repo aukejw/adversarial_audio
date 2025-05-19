@@ -8,7 +8,6 @@ from mlx_audio_opt import REPO_ROOT
 from mlx_audio_opt.stt.transcription import get_transcription
 from mlx_audio_opt.visualization.plot_audio import visualize_audio
 
-data_folder = REPO_ROOT / "data"
 output_folder = REPO_ROOT / "analysis"
 
 
@@ -19,12 +18,13 @@ def main(
     """Analyze audio files in the data folder.
 
     Args:
-        data_folder: The folder containing the audio files.
+        wav_file: The path to the audio file to analyze.
         output_folder: The folder to save the analysis results to.
 
     """
     wav_file = Path(wav_file)
     output_folder = Path(output_folder)
+
     print(f"Visualizing {wav_file}...")
 
     wav_file_output_folder = output_folder / wav_file.stem / "2_visualize_audio"
