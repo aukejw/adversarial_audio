@@ -28,7 +28,7 @@ def main(
     wav_file = Path(wav_file)
     output_folder = Path(output_folder)
 
-    print(f"Transcribing {wav_file}...")
+    print(f"\nTranscribing {wav_file}...")
     print(f"  model_id: {model_id}")
 
     if model_id.startswith("mlx-community/"):
@@ -43,13 +43,13 @@ def main(
 
     if "nova" in model_id:
         transcription: DeepgramTranscription = deepgram.transcribe_audio(
-            wav_file=wav_file,
+            audio=wav_file,
             model_id=model_id,
         )
 
     elif "whisper" in model_id:
         transcription: WhisperTranscription = whisper.transcribe_audio(
-            wav_file=wav_file,
+            audio=wav_file,
             model_id=f"mlx-community/{model_id}",
         )
 

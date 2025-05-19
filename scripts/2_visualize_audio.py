@@ -25,7 +25,7 @@ def main(
     wav_file = Path(wav_file)
     output_folder = Path(output_folder)
 
-    print(f"Visualizing {wav_file}...")
+    print(f"\nVisualizing {wav_file}...")
 
     wav_file_output_folder = output_folder / wav_file.stem / "2_visualize_audio"
     wav_file_output_folder.mkdir(parents=True, exist_ok=True)

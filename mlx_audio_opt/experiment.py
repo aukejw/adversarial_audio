@@ -86,6 +86,7 @@ class AdversarialAudioExperiment:
     ) -> Dict[str, Any]:
         """Transcribe the given audio file."""
 
+        mx.random.seed(0)
         transcription: WhisperTranscription = whisper.transcribe_audio(
             audio=audio_file,
             model_id=self.model_id,

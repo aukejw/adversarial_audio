@@ -26,7 +26,7 @@ def main(
     )
     wav_file_output_folder.mkdir(parents=True, exist_ok=True)
 
-    print(f"Optimizing audio for {wav_file}...")
+    print(f"\nOptimizing audio for {wav_file}...")
     print(f"  model_id: {model_id}")
     print(f"  num_iterations: {num_iterations}")
     print(f"  output folder: {wav_file_output_folder}")
