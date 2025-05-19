@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Self
 
 import mlx.core as mx
 import numpy as np
@@ -19,6 +19,17 @@ class Spectrogram:
     ):
         self.magnitudes = magnitudes
         self.phase = phase
+
+    def trim(self, n_frames: int) -> Self:
+        """Trim the spectrogram to the specified number of frames."""
+        if n_frames < self.num_frames:
+            magnitudes = self.magnitudes[:, :n_frames]
+            phase = self.phase[:, :n_frames] if self.phase is not None else None
+        else:
+            raise ValueError(
+                f"n_frames={n_frames}, but this spectrogram has {self.num_frames} frames."
+            )
+        return Spectrogram(magnitudes, phase)
 
     @property
     def shape(self):
