@@ -48,7 +48,7 @@ def get_spectrogram(
     )
 
     # mlx does not support angle, so we convert to numpy
-    magnitudes = np.abs(complex_spectrogram).T
+    magnitudes = mx.abs(complex_spectrogram).T
     phase = np.angle(complex_spectrogram).T
 
     # whisper chops off the last frame!

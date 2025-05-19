@@ -29,7 +29,7 @@ def reconstruct_audio_from_spectrogram(
         The reconstructed audio waveform.
 
     """
-    magnitudes = spectrogram.magnitudes
+    magnitudes = np.array(spectrogram.magnitudes)
     phase = spectrogram.phase
 
     if magnitudes.shape != phase.shape:
