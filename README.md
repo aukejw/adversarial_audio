@@ -23,12 +23,14 @@ You will need:
    make setup
    ```
 
-3. Add your audio files (`.wav`) to the data folder:
+3. We provide one data file in the `data` folder. Add your own audio files (`.wav`) to the data folder if you like:
    ```
    cp <your_audio.wav> data/
    ```
 
 ## Running 
+
+To investigate audio optimization we include one audio file from [freesound.org]: [ExcessiveExposure.wav by acclivity -- https://freesound.org/s/33711/ -- License: Attribution NonCommercial 4.0](https://freesound.org/people/acclivity/sounds/33711/).
 
 For best results, run all scripts in order. 
 
