@@ -65,25 +65,25 @@ def get_log_probabilities(
         The logprobs of the given tokens.
 
     """
-    # mlx_whisper does something interesting here:
-    # - pad the audio to N_SAMPLES
-    # - crop the mel specotrgram (usually to N_FRAMES)
-    # - then pad the mel spectrogram
+    # mlx_whisper does something interesting:
+    # 1. pad the audio to N_SAMPLES
+    # 2. compute the STFT on the padded audio
+    # 3. convert magnitudes to log mel spectrogram
+    # 4. crop the mel spectrogram (usually back to pre-padding n_frames)
+    # 5. then pad the mel spectrogram to N_FRAMES
     #
-    # We have already padded the audio, resulting in many
-    # more frames than N_FRAMES. Means we need to crop too!
-    # If we don't, we'll see float16 overflow.
+    # We assume we're at step 3 here
     mel = magnitudes_to_log_mel_spectrogram(
         magnitudes,
         n_mels=model.dims.n_mels,
     )
 
-    # first trim
-    content_frames = mel.shape[-2] - n_frames
-    content_frames = min(n_frames, content_frames)
-    mel = mel[0:content_frames]
+    # first trim back to original audio length, discarding audio padding
+    n_content_frames = mel.shape[-2] - n_frames
+    n_content_frames = min(n_frames, n_content_frames)
+    mel = mel[0:n_content_frames]
 
-    # then pad the log mel spectrogram
+    # then pad the log mel spectrogram to n_frames
     mel = pad_or_trim(mel, n_frames, axis=-2)
     mel = mel.astype(mx.float16)
 
@@ -99,6 +99,7 @@ def get_log_probabilities(
 
     # Quick sanity check
     log_probs = mx.squeeze(log_probs)
+
     b, num_tokens = tokens.shape
     vocab_size = model.dims.n_vocab
     assert b == 1, "We can only handle batch size 1 here"

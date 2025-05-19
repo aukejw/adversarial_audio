@@ -15,6 +15,23 @@ __all__ = [
 ]
 
 
+def save_and_close(
+    fig: plt.Figure,
+    output_file: Union[str, Path],
+) -> None:
+    """Save and close the figure.
+
+    Args:
+        fig: The matplotlib figure.
+        output_file: The file path.
+
+    """
+    output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_file, bbox_inches="tight", dpi=300)
+    plt.close(fig)
+
+
 def visualize_audio(
     wav_file: Union[str, Path],
     sampling_rate: Optional[int],
