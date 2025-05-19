@@ -1,6 +1,21 @@
-# MLX speech optimization
+# MLX audio optimization
 
-Using pretrained speech models to investigate speech data.
+Using pretrained models to investigate audio data on Apple silicon.
+
+Our goal is to find adversarial examples for Whisper models uing `mlx_whisper`. 
+We achieve this by computing the gradient of the nll with respect to inputs, and performing stochastic gradient ascent:
+
+```
+   log p(T | s, x) = \sum f(T_i | T_{<i}, x, θ)
+                 x = x + ∇x log p(T|s, x, θ)
+```
+
+Iteratively updating the input audio can fool Whisper models into producing the wrong output. Example applications of these adversarial examples include:
+
+  - making speech models more robust by incorporating them during training
+  - stresstesting and finding commonly confused tokens
+  - pentesting applications that rely on speech input
+
 
 ## Installation
 
@@ -59,3 +74,12 @@ Each script will create files in the `analysis` folder, using the `.wav` filenam
    ```
    uv run scripts/3_optimize_audio.py --model_id mlx_community/whisper-small-mlx --wav_file <wav_file>
    ```
+
+## Disclaimer
+
+This project enables creating adversarial examples intended for research and educational use. You may not:
+
+  - use it to cause harm
+  - use it illegally obtain access to systems
+
+By using this project, you agree to uphold legal and ethical standards. 
