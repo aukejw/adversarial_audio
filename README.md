@@ -67,8 +67,6 @@ You will need:
 
 ## Running 
 
-To investigate audio optimization we include one audio file from [freesound.org]: [ExcessiveExposure.wav by acclivity -- https://freesound.org/s/33711/ -- License: Attribution NonCommercial 4.0](https://freesound.org/people/acclivity/sounds/33711/).
-
 We provide scripts for transcription, visualization and optimization of the audio. For best results, run them in order.
 
 To run all three on the given example file, you can use:
