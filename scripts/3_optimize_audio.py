@@ -21,9 +21,7 @@ def main(
     wav_file = Path(wav_file)
     short_model_id = model_id.split("/")[-1]
 
-    wav_file_output_folder = (
-        analysis_folder / wav_file.stem / "3_optimize_audio" / short_model_id
-    )
+    wav_file_output_folder = analysis_folder / wav_file.stem / "3_optimize_audio"
     wav_file_output_folder.mkdir(parents=True, exist_ok=True)
 
     print(f"\nOptimizing audio for {wav_file}...")
