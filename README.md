@@ -16,6 +16,28 @@ Iteratively updating the input audio can fool Whisper models into producing the 
   - stresstesting and finding commonly confused tokens
   - pentesting applications that rely on speech input
 
+## What to expect
+
+This library enables you to fool open-weight ASR models. We include one audio file from freesound.org as an example: [ExcessiveExposure.wav by acclivity](https://freesound.org/people/acclivity/sounds/33711/) (License: Attribution NonCommercial 4.0).
+
+Before optimization, this file is transcribed accurately by `mlx-community/mlx-whisper-small` as:
+
+```
+We will not be held responsible for any hearing impairments or
+damage caused to you from excessive exposure to this sound.
+```
+
+After just 100 iterations of adversarial optimization, this Whisper model is thoroughly confused, transcribing text as:
+
+```
+We will not be held responsible for any peering impendence or
+damage goes to yield on excessive exclserty list sand.
+```
+
+The transcription probabilities are shown below:
+
+![afbeelding](https://github.com/user-attachments/assets/a90e36d4-be69-4d4a-98b2-cdc469ff2844)
+
 
 ## Installation
 
