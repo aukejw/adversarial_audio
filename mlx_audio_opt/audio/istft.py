@@ -1,6 +1,8 @@
+import warnings
 from typing import Union
 
 import librosa
+import mlx.core as mx
 import numpy as np
 from mlx_whisper.audio import HOP_LENGTH, N_FFT
 
@@ -29,23 +31,47 @@ def reconstruct_audio_from_spectrogram(
         The reconstructed audio waveform.
 
     """
-    magnitudes = np.array(spectrogram.magnitudes)
-    phase = spectrogram.phase
+    magnitudes = np.array(spectrogram.magnitudes, dtype=np.float32)
+    phase = np.array(spectrogram.phase, dtype=np.float32)
 
     if magnitudes.shape != phase.shape:
         raise ValueError("Magnitudes and phase must have the same shape")
 
-    complex_spectrogram = magnitudes * np.exp(1j * phase)
+    complex_spectrogram = magnitudes * mx.exp(1j * mx.array(phase))
+    complex_spectrogram = np.array(complex_spectrogram)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=FutureWarning)
+
+        original_fftlib = librosa.core.get_fftlib()
+
+        class mx_fftlib:
+            """Custom fft lib-like object that implements irfft"""
+
+            @staticmethod
+            def irfft(x, n=None, axis=-1):
+                return np.array(
+                    mx.fft.irfft(
+                        mx.array(x),
+                        n=n,
+                        axis=axis,
+                    )
+                )
+
+        librosa.core.set_fftlib(mx_fftlib)
 
     audio = librosa.istft(
         complex_spectrogram,
         n_fft=n_fft,
         hop_length=hop_length,
         window=window,
-        length=length if length is None else (length + 10),
-        center=False,
+        length=length,
+        center=True,
         **stft_kwargs,
     )
-    # edge handling is poor and leads to huge spikes. We cut off a few samples.
-    audio = audio[5:-5]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=FutureWarning)
+        librosa.core.set_fftlib(original_fftlib)
+
     return audio

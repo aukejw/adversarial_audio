@@ -2,14 +2,19 @@ import librosa
 import mlx.core as mx
 import mlx_whisper.audio
 import numpy as np
+import pytest
 from mlx_whisper.audio import HOP_LENGTH, N_FFT, hanning, stft
 
-from mlx_audio_opt.audio.istft import reconstruct_audio_from_spectrogram
 from mlx_audio_opt.audio.stft import get_spectrogram, magnitudes_to_log_mel_spectrogram
 
 
-def test_stft_libros_equivalence():
-    audio = mx.random.uniform(-1, 1, (16000,))
+@pytest.fixture
+def audio():
+    x = np.arange(0, 4_000)
+    return np.sin(x) + np.cos(x / 2) + np.random.normal(0, 0.1, x.shape)
+
+
+def test_stft_libros_equivalence(audio):
     spectrogram = get_spectrogram(
         audio_series=audio,
         n_fft=1000,
@@ -26,45 +31,51 @@ def test_stft_libros_equivalence():
         window="hann",
         center=True,
     )
-    magnitudes_librosa = np.abs(librosa_complex_spectrogram.real)
+    magnitudes_librosa = np.abs(librosa_complex_spectrogram)
+    phase_librosa = np.angle(librosa_complex_spectrogram)
 
-    assert spectrogram.magnitudes.shape == (501, 32 + 1)
-    assert spectrogram.magnitudes.shape == magnitudes_librosa.shape
+    # 4000 samples, n_fft=1000, hop_length=500 -> 7 frames + 2 half-padding
+    #
+    #     |__0__|__2__|__4__|__6__|_pad__|
+    # |_pad__|__1__|__3__|__5__|__7__|
+    #     .     .     .     .     .
+    #     0   1000  2000  3000  4000
+    #
+    # whisper does chop off the last padding frame, but we've disabled this here
+    n_frames = 7 + 2
+    assert magnitudes_librosa.shape == (501, n_frames)
+    assert phase_librosa.shape == (501, n_frames)
+    assert spectrogram.magnitudes.shape == (501, n_frames)
+    assert spectrogram.phase.shape == (501, n_frames)
 
     np.testing.assert_allclose(
         spectrogram.magnitudes,
         magnitudes_librosa,
-        rtol=1e-3,
-        atol=40,  # the difference can be quite large - not really equivalent settings
+        rtol=1e-4,
+        atol=1e-4,
     )
 
+    real_librosa = np.real(librosa_complex_spectrogram)
+    imag_librosa = np.imag(librosa_complex_spectrogram)
 
-def test_stft_and_back():
-    # Convert audio to STFT and back
-    audio = mx.random.uniform(-1, 1, (16000,))
-
-    spectrogram = get_spectrogram(
-        audio_series=audio,
-        n_fft=1000,
-        hop_length=500,
-        pad_audio=0,
+    complex_spectrogram = spectrogram.magnitudes * mx.exp(
+        1j * mx.array(spectrogram.phase)
     )
+    real_ours = np.array(mx.real(complex_spectrogram))
+    imag_ours = np.array(mx.imag(complex_spectrogram))
 
-    # 16000 samples, n_fft=1000, hop_length=500 -> 31 frames + 2 half-padding
-    # we chop off the last frame, leaving 32 frames
-    assert spectrogram.magnitudes.shape == (501, 31 + 1)
-    assert spectrogram.phase.shape == (501, 31 + 1)
-
-    reconstructed_audio = reconstruct_audio_from_spectrogram(
-        spectrogram=spectrogram,
-        n_fft=1000,
-        hop_length=500,
-        length=len(audio),
+    np.testing.assert_allclose(
+        real_librosa,
+        real_ours,
+        rtol=1e-4,
+        atol=1e-4,
     )
-    assert reconstructed_audio.shape == audio.shape
-
-    # we can't really test much more here - the match is not great
-    # because the librosa istft does not match Whispers stft operation.
+    np.testing.assert_allclose(
+        imag_librosa,
+        imag_ours,
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
 
 def test_log_mel_spectrogram():
