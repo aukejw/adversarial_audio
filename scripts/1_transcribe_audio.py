@@ -14,7 +14,7 @@ OUTPUT_FOLDER = REPO_ROOT / "analysis"
 def main(
     wav_file: Union[str, Path],
     output_folder: Union[str, Path] = OUTPUT_FOLDER,
-    model_id: str = "nova-3",
+    model_id: str = "mlx-community/whisper-small-mlx",
 ):
     """Analyze audio files in the data folder.
 
@@ -22,7 +22,8 @@ def main(
         wav_file: The path to the audio file to transcribe.
         output_folder: The folder to save the transcriptions to.
         model_id: Identifier for model to use for transcription.
-            Example options include "nova2", "nova-3", "whisper-small-mlx"
+            Example options include "nova2", "nova-3" for Deepgram models,
+            or "mlx-community/whisper-small-mlx" for open-weight Whisper models.
 
     """
     wav_file = Path(wav_file)
