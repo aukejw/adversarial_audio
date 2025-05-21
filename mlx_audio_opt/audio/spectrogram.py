@@ -49,7 +49,7 @@ class Spectrogram:
 
     @property
     def whisper_tensor(self):
-        return mx.array(self.magnitudes.T)
+        return mx.array(self.magnitudes.T).astype(mx.float32)
 
     @classmethod
     def from_librosa(cls, spectrogram: np.ndarray):
