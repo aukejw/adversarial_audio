@@ -1,8 +1,18 @@
+from pathlib import Path
 from typing import Union
 
+import librosa
 import mlx.core as mx
 import numpy as np
-from mlx_whisper.audio import HOP_LENGTH, N_FFT, N_SAMPLES, hanning, mel_filters, stft
+from mlx_whisper.audio import (
+    HOP_LENGTH,
+    N_FFT,
+    N_SAMPLES,
+    SAMPLE_RATE,
+    hanning,
+    mel_filters,
+    stft,
+)
 
 from mlx_audio_opt.audio.spectrogram import Spectrogram
 
@@ -11,6 +21,23 @@ __all__ = [
     "reconstruct_audio_from_magnitude_and_phase",
     "magnitudes_to_log_mel_spectrogram",
 ]
+
+
+def get_spectrogram_from_file(
+    audio_file: Union[str, Path],
+    sampling_rate: int = SAMPLE_RATE,
+    **kwargs,
+) -> Spectrogram:
+    """Load an audio file and compute its spectrogram."""
+    audio_file = Path(audio_file)
+    assert audio_file.exists(), f"Audio file {audio_file} does not exist."
+
+    audio_series, _ = librosa.load(
+        audio_file.as_posix(),
+        sr=sampling_rate,
+        **kwargs,
+    )
+    return get_spectrogram(audio_series, **kwargs)
 
 
 def get_spectrogram(
