@@ -5,7 +5,7 @@ import librosa
 import mlx.core as mx
 import numpy as np
 import soundfile
-from mlx_whisper.audio import N_FRAMES, N_SAMPLES, SAMPLE_RATE
+from mlx_whisper.audio import N_FRAMES, SAMPLE_RATE
 from mlx_whisper.transcribe import ModelHolder, get_tokenizer
 from tqdm import tqdm
 
@@ -37,12 +37,11 @@ class AdversarialAudioExperiment:
 
         assert self.wav_file.exists(), f"wav_file '{wav_file}' does not exist."
 
-        self.short_model_id = model_id.split("/")[-1]
-        self.output_folder = Path(output_folder) / self.short_model_id
+        self.output_folder = Path(output_folder)
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
         self.setup_model()
-        self.load_audio()
+        self.setup_spectrogram()
 
     def setup_model(self):
         """Load the model."""
@@ -60,24 +59,21 @@ class AdversarialAudioExperiment:
             task="transcribe",
         )
 
-    def load_audio(self):
-        """Load the audio file."""
+    def setup_spectrogram(self):
+        """Load the audio file and store the (unpadded) spectrogram."""
 
-        # Get the spectrogram using librosa
-        # This is not a perfect match with mlx_whisper's stft, but the result is close.
-        audio_series, sampling_rate = librosa.load(str(self.wav_file), sr=SAMPLE_RATE)
-        self.audio_series = np.array(audio_series)
-        self.sampling_rate = sampling_rate
-
-        self.spectrogram: Spectrogram = get_spectrogram(
-            audio_series=audio_series,
-            pad_audio=N_SAMPLES,
+        # Load audio, compute (padded) spectrogram
+        self.audio_series, self.sampling_rate = librosa.load(
+            self.wav_file.as_posix(),
+            sr=SAMPLE_RATE,
         )
-        # the audio was padded by N_SAMPLES before the STFT. This should result
-        # in N_FRAMES padding, we remove this again here, but will use the
-        # padded version during optimization.
-        num_content_frames = self.spectrogram.num_frames - N_FRAMES
-        self.original_spectrogram = self.spectrogram.trim(num_content_frames)
+        self.spectrogram = get_spectrogram(self.audio_series)
+
+        # Audio was padded by N_SAMPLES before STFT, we remove this here.
+        # N_SAMPLES waveform should result in N_FRAMES frames worth of padding.
+        # We can now use this unpadded spectrogram to reconstruct audio later.
+        self.n_content_frames = self.spectrogram.num_frames - N_FRAMES
+        self.unpadded_spectrogram = self.spectrogram.trim(self.n_content_frames)
 
     def transcribe(
         self,
@@ -85,8 +81,8 @@ class AdversarialAudioExperiment:
         json_file_name: Union[str, Path] = None,
     ) -> Dict[str, Any]:
         """Transcribe the given audio file."""
-
         mx.random.seed(0)
+
         transcription: WhisperTranscription = whisper.transcribe_audio(
             audio=audio_file,
             model_id=self.model_id,
@@ -115,9 +111,12 @@ class AdversarialAudioExperiment:
         self,
         num_iterations: int = 1_000,
         log_every_n: int = 100,
+        reload_audio_every_n: int = 20,
         learning_rate: float = 1e-1,
     ):
         """Run the experiment."""
+        mx.random.seed(0)
+
         transcription_dict = self.transcribe(
             self.wav_file,
             json_file_name="transcription_before.json",
@@ -160,7 +159,7 @@ class AdversarialAudioExperiment:
             )
             grads = grads[1]["magnitudes"]
 
-            # simple gradient ascent, minimizing log p(tokens|magnitudes)
+            # gradient ascent, minimizing log p(tokens|magnitudes)
             magnitudes_tensor = magnitudes_tensor + learning_rate * grads
             mx.eval(magnitudes_tensor)
 
@@ -175,6 +174,9 @@ class AdversarialAudioExperiment:
                     magnitudes_tensor=magnitudes_tensor,
                     tokens_tensor=token_tensor,
                 )
+            # Reload audio (move to waveform and back) every so often
+            if iteration % reload_audio_every_n == 0:
+                magnitudes_tensor = self.reload_audio(magnitudes_tensor)
 
         print(f"\nOptimization finished after {iteration+1} iterations.")
         print(f"  Final audio saved to '{self.optimized_wav_file}'")
@@ -191,6 +193,34 @@ class AdversarialAudioExperiment:
         print(f"  Transcription after:\n  {transcription_dict['sequence_str']}")
 
         return self.optimized_wav_file
+
+    def reload_audio(self, magnitudes_tensor: mx.array) -> mx.array:
+        """Reload the audio by going back to waveform and re-computing the STFT.
+
+        This is necessary because numerical precision errors, combined with an
+        actual save-to-file, can lead to a very different magnitudes tensor the
+        next time we compute the STFT.
+
+        This would then lead to a different (wrong) transcription.
+
+        """
+        # create the current spec
+        unpadded_spectrogram = Spectrogram.from_whisper(
+            magnitudes_tensor[0 : self.n_content_frames],
+        )
+        unpadded_spectrogram.phase = self.unpadded_spectrogram.phase
+
+        # move spec -> audio -> spec
+        audio_series = reconstruct_audio_from_spectrogram(
+            spectrogram=unpadded_spectrogram,
+        )
+        spectrogram = get_spectrogram(
+            audio_series,
+            remove_last_frame=False,
+        )
+        # use the resulting magnitudes as our new model input
+        magnitudes_tensor = spectrogram.whisper_tensor
+        return magnitudes_tensor
 
     def get_nll(
         self,
@@ -212,8 +242,8 @@ class AdversarialAudioExperiment:
             model=self.model,
             tokens=tokens,
         )
-        # Avoid changing SOT, language, task, EOT tokens
-        target_log_probs[:3] = mx.stop_gradient(target_log_probs[:3])
+        # Avoid changing SOT, language, task, timestamp and timestamp, EOT tokens
+        target_log_probs[:4] = mx.stop_gradient(target_log_probs[:4])
         target_log_probs[-2:] = mx.stop_gradient(target_log_probs[-2:])
 
         # return the neg log (joint) likelihood of the last token
@@ -254,13 +284,13 @@ class AdversarialAudioExperiment:
         output_folder.mkdir(parents=True, exist_ok=True)
 
         spectrogram = Spectrogram.from_whisper(
-            magnitudes_tensor[: self.original_spectrogram.num_frames, :],
+            magnitudes_tensor[0 : self.n_content_frames],
         )
-        spectrogram.phase = self.original_spectrogram.phase
+        spectrogram.phase = self.unpadded_spectrogram.phase
 
         self.show_intermediate_results(
             magnitudes=spectrogram.magnitudes,
-            original_magnitudes=self.original_spectrogram.magnitudes,
+            original_magnitudes=self.unpadded_spectrogram.magnitudes,
             output_folder=output_folder,
         )
         optimized_wav_file = self.save_audio(
@@ -332,7 +362,6 @@ class AdversarialAudioExperiment:
         )
         transcription_dict = self.transcribe(audio_file=optimized_wav_file)
 
-        print(f"  Transcription currently:")
-        print(f"  {transcription_dict['sequence_str']}")
+        print(f"  Transcription currently:\n  {transcription_dict['sequence_str']}\n")
 
         return optimized_wav_file
