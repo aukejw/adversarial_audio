@@ -13,9 +13,9 @@ dependencies = [
     "deepgram-sdk==4.0.0",
     "fire>=0.7.0",
     "ipython>=9.2.0",
-    "lmstudio>=1.2.0",
     "Jinja2>=3.1.6",
     "jupyterlab>=4.4.2",
+    "lmstudio>=1.2.0",
     "librosa>=0.11.0",
     "matplotlib>=3.10.1",
     "mlx>=0.25.1",
@@ -26,8 +26,8 @@ dependencies = [
     "plotly>=6.0.1",
     "python-dotenv>=1.1.0",
     "setuptools>=78.1.0",
-    "transformers>=4.50.1",
     "torch==2.7.0",
+    "transformers>=4.50.1",
 ]
 
 [dependency-groups]
