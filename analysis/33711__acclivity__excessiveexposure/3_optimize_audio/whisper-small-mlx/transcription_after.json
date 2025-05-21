@@ -1,0 +1,191 @@
+{
+    "text": " We will not be held responsible for any hearing impenetence or damage goes to yield on excessive exposure to this sand.",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.7600000000000007,
+            "end": 7.1,
+            "text": " We will not be held responsible for any hearing impenetence or damage goes to yield",
+            "tokens": [
+                50364,
+                492,
+                486,
+                406,
+                312,
+                5167,
+                6250,
+                337,
+                604,
+                4763,
+                704,
+                268,
+                302,
+                655,
+                420,
+                4344,
+                1709,
+                281,
+                11257,
+                50714
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.43334760665893557,
+            "compression_ratio": 1.2395833333333333,
+            "no_speech_prob": 0.07627187669277191,
+            "words": [
+                {
+                    "word": " We",
+                    "start": 0.7600000000000007,
+                    "end": 1.48,
+                    "probability": 0.8759765625
+                },
+                {
+                    "word": " will",
+                    "start": 1.48,
+                    "end": 1.66,
+                    "probability": 0.9921875
+                },
+                {
+                    "word": " not",
+                    "start": 1.66,
+                    "end": 1.86,
+                    "probability": 0.98974609375
+                },
+                {
+                    "word": " be",
+                    "start": 1.86,
+                    "end": 2.16,
+                    "probability": 0.99609375
+                },
+                {
+                    "word": " held",
+                    "start": 2.16,
+                    "end": 2.3,
+                    "probability": 0.9990234375
+                },
+                {
+                    "word": " responsible",
+                    "start": 2.3,
+                    "end": 2.94,
+                    "probability": 0.99560546875
+                },
+                {
+                    "word": " for",
+                    "start": 2.94,
+                    "end": 3.62,
+                    "probability": 0.96240234375
+                },
+                {
+                    "word": " any",
+                    "start": 3.62,
+                    "end": 3.98,
+                    "probability": 0.99365234375
+                },
+                {
+                    "word": " hearing",
+                    "start": 3.98,
+                    "end": 4.38,
+                    "probability": 0.99853515625
+                },
+                {
+                    "word": " impenetence",
+                    "start": 4.38,
+                    "end": 5.42,
+                    "probability": 0.501953125
+                },
+                {
+                    "word": " or",
+                    "start": 5.42,
+                    "end": 5.76,
+                    "probability": 0.3984375
+                },
+                {
+                    "word": " damage",
+                    "start": 5.76,
+                    "end": 6.1,
+                    "probability": 0.64013671875
+                },
+                {
+                    "word": " goes",
+                    "start": 6.1,
+                    "end": 6.52,
+                    "probability": 0.81298828125
+                },
+                {
+                    "word": " to",
+                    "start": 6.52,
+                    "end": 6.78,
+                    "probability": 0.98583984375
+                },
+                {
+                    "word": " yield",
+                    "start": 6.78,
+                    "end": 7.1,
+                    "probability": 0.98974609375
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 7.1,
+            "end": 9.44,
+            "text": " on excessive exposure to this sand.",
+            "tokens": [
+                50714,
+                322,
+                22704,
+                10420,
+                281,
+                341,
+                4932,
+                13,
+                50864
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.43334760665893557,
+            "compression_ratio": 1.2395833333333333,
+            "no_speech_prob": 0.07627187669277191,
+            "words": [
+                {
+                    "word": " on",
+                    "start": 7.1,
+                    "end": 7.34,
+                    "probability": 0.386962890625
+                },
+                {
+                    "word": " excessive",
+                    "start": 7.34,
+                    "end": 7.82,
+                    "probability": 0.95751953125
+                },
+                {
+                    "word": " exposure",
+                    "start": 7.82,
+                    "end": 8.4,
+                    "probability": 0.51513671875
+                },
+                {
+                    "word": " to",
+                    "start": 8.4,
+                    "end": 8.76,
+                    "probability": 0.99658203125
+                },
+                {
+                    "word": " this",
+                    "start": 8.76,
+                    "end": 8.98,
+                    "probability": 0.98046875
+                },
+                {
+                    "word": " sand.",
+                    "start": 8.98,
+                    "end": 9.44,
+                    "probability": 0.95703125
+                }
+            ]
+        }
+    ],
+    "language": "en"
+}
