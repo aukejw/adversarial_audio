@@ -19,8 +19,8 @@ def main(
     target_sentence: str = DEFAULT_SENTENCE,
     analysis_folder: Union[str, Path] = analysis_folder,
     model_id: str = "mlx-community/whisper-small-mlx",
-    num_iterations: int = 1_000,
-    log_every_n: int = 500,
+    num_iterations: int = 500,
+    log_every_n: int = 250,
     reload_audio_every_n: int = 10,
     learning_rate: float = 1e-2,
 ):

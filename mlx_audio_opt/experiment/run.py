@@ -1,5 +1,4 @@
 import datetime
-import json
 from pathlib import Path
 from typing import Optional, Union
 
@@ -7,6 +6,7 @@ from mlx_audio_opt.experiment.adversarial_audio_experiment import (
     AdversarialAudioExperiment,
 )
 from mlx_audio_opt.experiment.change_sentence_experiment import ChangeSentenceExperiment
+from mlx_audio_opt.file_io import to_json
 
 
 def run_optimization_experiment(
@@ -60,9 +60,11 @@ def run_optimization_experiment(
         reload_audio_every_n=reload_audio_every_n,
         target_sentence=target_sentence,
     )
-    config_file = wav_file_output_folder / "config.json"
-    with open(config_file, "w") as f:
-        json.dump(config, f)
+    to_json(
+        config,
+        output_file=wav_file_output_folder / "config.json",
+        verbose=True,
+    )
 
     # Optimize
     kwargs = dict(

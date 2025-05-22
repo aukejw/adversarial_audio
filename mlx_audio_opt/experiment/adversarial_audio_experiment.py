@@ -194,23 +194,29 @@ class AdversarialAudioExperiment:
 
         return self.optimized_wav_file
 
-    def reload_audio(self, magnitudes_tensor: mx.array) -> mx.array:
+    def reload_audio(
+        self,
+        magnitudes_tensor: mx.array,
+    ) -> mx.array:
         """Reload the audio by going back to waveform and re-computing the STFT.
 
-        This is necessary because numerical precision errors, combined with an
-        actual save-to-file, can lead to a very different magnitudes tensor the
-        next time we compute the STFT.
+        This is necessary because appling a istft to an altered spectrorgram is
+        not a lossless operation. Minor changes in the spectrogram may be removed
+        or altered, and the resulting transcription will be very different from
+        the one we saw during optimization.
 
-        This would then lead to a different (wrong) transcription.
+        To avoid this, we convert the altered spectrogram to audio, then apply
+        a stft to the new audio to get a spectrogram again. This new spectrogram
+        is much closer to the one we'd see if we load audio from file.
 
         """
-        # create the current spec
-        unpadded_spectrogram = Spectrogram.from_whisper(
-            magnitudes_tensor[0 : self.n_content_frames],
+        # create the current spectrogram (not padded)
+        unpadded_spectrogram = Spectrogram(
+            magnitudes=magnitudes_tensor[0 : self.n_content_frames].T,
+            phase=self.unpadded_spectrogram.phase,
         )
-        unpadded_spectrogram.phase = self.unpadded_spectrogram.phase
 
-        # move spec -> audio -> spec
+        # move spectrogram -> audio -> spectrogram
         audio_series = reconstruct_audio_from_spectrogram(
             spectrogram=unpadded_spectrogram,
         )
@@ -218,6 +224,7 @@ class AdversarialAudioExperiment:
             audio_series,
             remove_last_frame=False,
         )
+
         # use the resulting magnitudes as our new model input
         magnitudes_tensor = spectrogram.whisper_tensor
         return magnitudes_tensor
@@ -283,10 +290,10 @@ class AdversarialAudioExperiment:
         output_folder = self.output_folder / f"iteration_{iteration+1:0>6}"
         output_folder.mkdir(parents=True, exist_ok=True)
 
-        spectrogram = Spectrogram.from_whisper(
-            magnitudes_tensor[0 : self.n_content_frames],
+        spectrogram = Spectrogram(
+            magnitudes=magnitudes_tensor[0 : self.n_content_frames].T,
+            phase=self.unpadded_spectrogram.phase,
         )
-        spectrogram.phase = self.unpadded_spectrogram.phase
 
         self.show_intermediate_results(
             magnitudes=spectrogram.magnitudes,
