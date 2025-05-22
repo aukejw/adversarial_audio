@@ -1,0 +1,212 @@
+{
+    "text": " And we will note they held responsible. Flip any hearing impendent. O Damage goes through Yield while excessive X-Bowdered in this SAM.",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.7400000000000004,
+            "end": 6.72,
+            "text": " And we will note they held responsible. Flip any hearing impendent. O Damage goes through",
+            "tokens": [
+                50364,
+                400,
+                321,
+                486,
+                3637,
+                436,
+                5167,
+                6250,
+                13,
+                28210,
+                604,
+                4763,
+                704,
+                521,
+                317,
+                13,
+                422,
+                5885,
+                609,
+                1709,
+                807,
+                50700
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.31113013243063903,
+            "compression_ratio": 1.1637931034482758,
+            "no_speech_prob": 0.0011146580800414085,
+            "words": [
+                {
+                    "word": " And",
+                    "start": 0.7400000000000004,
+                    "end": 1.36,
+                    "probability": 0.89404296875
+                },
+                {
+                    "word": " we",
+                    "start": 1.36,
+                    "end": 1.48,
+                    "probability": 0.99658203125
+                },
+                {
+                    "word": " will",
+                    "start": 1.48,
+                    "end": 1.66,
+                    "probability": 0.9951171875
+                },
+                {
+                    "word": " note",
+                    "start": 1.66,
+                    "end": 1.92,
+                    "probability": 0.99951171875
+                },
+                {
+                    "word": " they",
+                    "start": 1.92,
+                    "end": 2.1,
+                    "probability": 0.884765625
+                },
+                {
+                    "word": " held",
+                    "start": 2.1,
+                    "end": 2.3,
+                    "probability": 0.9970703125
+                },
+                {
+                    "word": " responsible.",
+                    "start": 2.3,
+                    "end": 2.84,
+                    "probability": 0.96728515625
+                },
+                {
+                    "word": " Flip",
+                    "start": 3.44,
+                    "end": 3.64,
+                    "probability": 0.9130859375
+                },
+                {
+                    "word": " any",
+                    "start": 3.64,
+                    "end": 3.92,
+                    "probability": 0.998046875
+                },
+                {
+                    "word": " hearing",
+                    "start": 3.92,
+                    "end": 4.38,
+                    "probability": 0.93408203125
+                },
+                {
+                    "word": " impendent.",
+                    "start": 4.38,
+                    "end": 5.0,
+                    "probability": 0.83203125
+                },
+                {
+                    "word": " O",
+                    "start": 5.5,
+                    "end": 5.74,
+                    "probability": 0.7724609375
+                },
+                {
+                    "word": " Damage",
+                    "start": 5.74,
+                    "end": 6.22,
+                    "probability": 0.81982421875
+                },
+                {
+                    "word": " goes",
+                    "start": 6.22,
+                    "end": 6.48,
+                    "probability": 0.9951171875
+                },
+                {
+                    "word": " through",
+                    "start": 6.48,
+                    "end": 6.72,
+                    "probability": 0.46875
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 6.72,
+            "end": 9.3,
+            "text": " Yield while excessive X-Bowdered in this SAM.",
+            "tokens": [
+                50700,
+                398,
+                1789,
+                1339,
+                22704,
+                1783,
+                12,
+                33,
+                305,
+                1068,
+                292,
+                294,
+                341,
+                9617,
+                13,
+                50892
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.31113013243063903,
+            "compression_ratio": 1.1637931034482758,
+            "no_speech_prob": 0.0011146580800414085,
+            "words": [
+                {
+                    "word": " Yield",
+                    "start": 6.72,
+                    "end": 7.14,
+                    "probability": 0.873046875
+                },
+                {
+                    "word": " while",
+                    "start": 7.14,
+                    "end": 7.32,
+                    "probability": 0.9384765625
+                },
+                {
+                    "word": " excessive",
+                    "start": 7.32,
+                    "end": 7.82,
+                    "probability": 0.379150390625
+                },
+                {
+                    "word": " X",
+                    "start": 7.82,
+                    "end": 8.16,
+                    "probability": 0.77294921875
+                },
+                {
+                    "word": "-Bowdered",
+                    "start": 8.16,
+                    "end": 8.7,
+                    "probability": 0.64404296875
+                },
+                {
+                    "word": " in",
+                    "start": 8.7,
+                    "end": 8.76,
+                    "probability": 0.986328125
+                },
+                {
+                    "word": " this",
+                    "start": 8.76,
+                    "end": 8.96,
+                    "probability": 0.9775390625
+                },
+                {
+                    "word": " SAM.",
+                    "start": 8.96,
+                    "end": 9.3,
+                    "probability": 0.52490234375
+                }
+            ]
+        }
+    ],
+    "language": "en"
+}

@@ -1,0 +1,9 @@
+{
+    "wav_file": "/Users/auke/code/mlx_audio_opt/data/33711__acclivity__excessiveexposure.wav",
+    "datetime_str": "exp_2025-05-22_11-45-39",
+    "model_id": "mlx-community/whisper-small-mlx",
+    "learning_rate": 0.01,
+    "num_iterations": 100,
+    "reload_audio_every_n": 5,
+    "target_sentence": null
+}
