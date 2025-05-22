@@ -9,6 +9,14 @@ from mlx_whisper.audio import HOP_LENGTH, N_FFT
 from mlx_audio_opt.audio.spectrogram import Spectrogram
 
 
+class mx_fftlib:
+    """Custom fft lib-like object that implements irfft."""
+
+    @staticmethod
+    def irfft(x, n=None, axis=-1):
+        return np.array(mx.fft.irfft(mx.array(x), n=n, axis=axis))
+
+
 def reconstruct_audio_from_spectrogram(
     spectrogram: Spectrogram,
     n_fft: int = N_FFT,
@@ -25,43 +33,19 @@ def reconstruct_audio_from_spectrogram(
         hop_length: The number of samples between frames.
         window: The window function to use.
         length: The length of the output audio signal.
-        **stft_kwargs: Additional arguments for the STFT function.
+        **stft_kwargs: Additional arguments for the istft function.
 
     Returns:
-        The reconstructed audio waveform.
+        np.array: the reconstructed audio waveform.
 
     """
-    magnitudes = np.array(spectrogram.magnitudes, dtype=np.float32)
-    phase = np.array(spectrogram.phase, dtype=np.float32)
-
-    if magnitudes.shape != phase.shape:
-        raise ValueError("Magnitudes and phase must have the same shape")
-
-    complex_spectrogram = magnitudes * mx.exp(1j * mx.array(phase))
-    complex_spectrogram = np.array(complex_spectrogram)
-
     with warnings.catch_warnings():
         warnings.simplefilter(action="ignore", category=FutureWarning)
-
         original_fftlib = librosa.core.get_fftlib()
-
-        class mx_fftlib:
-            """Custom fft lib-like object that implements irfft"""
-
-            @staticmethod
-            def irfft(x, n=None, axis=-1):
-                return np.array(
-                    mx.fft.irfft(
-                        mx.array(x),
-                        n=n,
-                        axis=axis,
-                    )
-                )
-
         librosa.core.set_fftlib(mx_fftlib)
 
     audio = librosa.istft(
-        complex_spectrogram,
+        spectrogram.complex_spectrogram,
         n_fft=n_fft,
         hop_length=hop_length,
         window=window,
