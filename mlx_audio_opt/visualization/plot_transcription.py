@@ -13,6 +13,7 @@ __all__ = [
 def plot_transcriptions(
     suptitle: str,
     transcriptions: Dict[str, Transcription],
+    xlim: List[float] = None,
 ) -> plt.Figure:
     """Plot given transcriptions."""
 
@@ -24,8 +25,9 @@ def plot_transcriptions(
         ax.grid(True)
         plot_transcription_words(
             words=transcription.get_words(),
-            title=f"Transcription {name}",
+            title=f"Transcription '{name}'",
             ax=ax,
+            xlim=xlim,
         )
 
     fig.tight_layout()
@@ -37,6 +39,8 @@ def plot_transcription_words(
     ax: plt.Axes,
     title: str,
     words: List[Dict[str, Any]],
+    xlim: List[float] = None,
+    title_fontsize: int = 14,
 ) -> None:
     """Plot the words with confidence scores.
 
@@ -46,13 +50,20 @@ def plot_transcription_words(
 
     """
     ax.grid(True)
-    ax.set_title(title)
+    ax.set_title(
+        title if title else " ",
+        fontdict={"fontsize": title_fontsize},
+    )
 
     for word_dict in words:
         word_start: float = word_dict["start"]
         word_end: float = word_dict["end"]
         word_confidence: float = word_dict["confidence"]
         punctuated_word: str = word_dict["word"].strip()
+
+        if word_end == word_start:
+            # ensure a bar is always visible
+            word_start -= 0.01
 
         # Show the words as distinctly colored bars, height = confidence
         bar_width = word_end - word_start
@@ -75,7 +86,20 @@ def plot_transcription_words(
             va="bottom",
         )
 
-    ax.set_ylim(0, 1.1)  # Set y-axis limit for confidence (0-1)
-    ax.set_xlabel("Time (seconds)")
-    ax.set_ylabel("Confidence")
+    ax.set_ylim(0, 1.00)  # Set y-axis limit for confidence (0-1)
+    ax.set_xlabel(
+        "Time (seconds)",
+        fontdict={"fontsize": title_fontsize},
+    )
+    ax.set_ylabel(
+        "Confidence",
+        fontdict={"fontsize": title_fontsize},
+    )
+
+    if xlim is not None:
+        ax.set_xlim(xlim[0], xlim[1])
+    if xlim[1] - xlim[0] > 1:
+        ax.xaxis.set_major_locator(plt.MultipleLocator(1.0))
+        ax.xaxis.set_minor_locator(plt.MultipleLocator(0.5))
+
     return
