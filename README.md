@@ -88,19 +88,19 @@ Each script will create files in the `analysis` folder, using the `.wav` filenam
 ## Method 
 
 Our goal is to modify audio data to change Whisper model output. 
-To confuse a model, we can compute gradients of the negative log likelihood of a sentence `T` with respect to audio inputs `x`, and perform stochastic gradient ascent:
+To confuse a model, we can compute gradients of the negative log likelihood of a sentence `T` with respect to audio inputs `x`, and perform gradient ascent:
 
 ```
 log p(T | s,x,θ) = \sum f(T_i | T_{<i},x,θ)
               Δx = α ∇x [ -log p(T | s,x,θ) ]
 ```
 
-Or, alternatively, we can compute gradients that maximize the probability of a different sentence `T'`:
+Alternatively, we can maximize the probability of a different sentence `T'`:
 ```
               Δx = -α ∇x [ -log p(T' | s,x,θ) ]
 ```
 
-Iteratively updating the input audio with either `Δx` causes the model to produce the wrong transcriptions. 
+Updating the input audio with either `Δx` causes the model to produce the wrong transcriptions. 
 Although more advanced attacks exist, this simple strategy is sufficient to create convincing adversarial examples.
 
 Armed with these examples, we can:
