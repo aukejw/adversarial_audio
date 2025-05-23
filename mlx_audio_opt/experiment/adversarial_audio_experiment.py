@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -113,6 +114,7 @@ class AdversarialAudioExperiment:
         log_every_n: int = 100,
         reload_audio_every_n: int = 20,
         learning_rate: float = 1e-1,
+        l2_penalty: float = 0.0,
     ):
         """Run the experiment."""
         mx.random.seed(0)
@@ -124,8 +126,9 @@ class AdversarialAudioExperiment:
         self.tokens: List[int] = transcription_dict["tokens"]
         self.transcription: WhisperTranscription = transcription_dict["transcription"]
 
-        # Initialize the tensor to optimize (padded magnitudes tensor)
+        # Initialize the tensor to optimize (same shape as padded magnitudes tensor)
         magnitudes_tensor = self.spectrogram.whisper_tensor
+        self.original_magnitudes_tensor = copy.deepcopy(magnitudes_tensor)
 
         # Initialize the token tensor.
         token_tensor: mx.array = mx.array(self.tokens)
@@ -133,6 +136,7 @@ class AdversarialAudioExperiment:
 
         print(f"Performing optimization:")
         print(f"  Learning rate:    {learning_rate}")
+        print(f"  L2 penalty:       {l2_penalty}")
         print(f"  Num iterations:   {num_iterations}")
         print(f"  Magnitudes shape: {magnitudes_tensor.shape}")
         print(f"  Tokens shape:     {token_tensor.shape}")
@@ -148,35 +152,41 @@ class AdversarialAudioExperiment:
         iteration = 0
 
         for iteration in progressbar:
-            # Compute gradient wrt the input magnitudes
+            # Compute gradient wrt the input
             loss_and_grad_fn = mx.value_and_grad(
                 self.get_nll,
-                argnames="magnitudes",  # optimize loss wrt magnitudes
+                argnames="magnitudes",  # optimize loss wrt input
             )
-            nll, grads = loss_and_grad_fn(
+            loss, grads = loss_and_grad_fn(
                 magnitudes=magnitudes_tensor,
                 tokens=token_tensor,
+                l2_penalty=l2_penalty,
             )
             grads = grads[1]["magnitudes"]
+
+            # don't alter padding regions, they will be cut off later
+            grads[:, self.n_content_frames :] = 0
 
             # gradient ascent, minimizing log p(tokens|magnitudes)
             magnitudes_tensor = magnitudes_tensor + learning_rate * grads
             mx.eval(magnitudes_tensor)
 
-            progressbar.set_description(f"Optimizing audio, nll = {nll:.4f}")
+            progressbar.set_description(f"Optimizing audio, loss = {loss:.4f}")
 
             # Log intermediate results every so often
             if iteration % log_every_n == 0 or iteration == num_iterations - 1:
                 self.log_intermediate_results(
                     iteration=iteration,
-                    nll=nll,
+                    loss=loss,
                     grads=grads,
                     magnitudes_tensor=magnitudes_tensor,
                     tokens_tensor=token_tensor,
                 )
             # Reload audio (move to waveform and back) every so often
             if iteration % reload_audio_every_n == 0:
-                magnitudes_tensor = self.reload_audio(magnitudes_tensor)
+                magnitudes_tensor = self.reload_audio(
+                    magnitudes_tensor=magnitudes_tensor,
+                )
 
         print(f"\nOptimization finished after {iteration+1} iterations.")
         print(f"  Final audio saved to '{self.optimized_wav_file}'")
@@ -210,9 +220,11 @@ class AdversarialAudioExperiment:
         is much closer to the one we'd see if we load audio from file.
 
         """
+        magnitudes = magnitudes_tensor[0 : self.n_content_frames].T
+
         # create the current spectrogram (not padded)
         unpadded_spectrogram = Spectrogram(
-            magnitudes=magnitudes_tensor[0 : self.n_content_frames].T,
+            magnitudes=magnitudes,
             phase=self.unpadded_spectrogram.phase,
         )
 
@@ -233,12 +245,14 @@ class AdversarialAudioExperiment:
         self,
         magnitudes: mx.array,
         tokens: mx.array,
+        l2_penalty: float = 0.0,
     ) -> mx.array:
         """Perform inference. Return neg log likelihood of the token sequence.
 
         Args:
             magnitudes: The input spectrograms magnitudes (power=1).
             tokens: The token sequence to compute the nll for.
+            l2_penalty: The L2 penalty to apply to the difference.
 
         Returns:
             mx.array: nll of the token sequence.
@@ -249,17 +263,26 @@ class AdversarialAudioExperiment:
             model=self.model,
             tokens=tokens,
         )
+
         # Avoid changing SOT, language, task, timestamp and timestamp, EOT tokens
         target_log_probs[:4] = mx.stop_gradient(target_log_probs[:4])
         target_log_probs[-2:] = mx.stop_gradient(target_log_probs[-2:])
 
+        nll = -mx.sum(target_log_probs)
+
+        # Compute L2 penalty if needed
+        l2_loss = 0
+        if l2_penalty > 0:
+            residuals = magnitudes - self.original_magnitudes_tensor
+            l2_loss = l2_penalty * (0.5 * mx.sum(mx.square(residuals)))
+
         # return the neg log (joint) likelihood of the last token
-        return -mx.sum(target_log_probs)
+        return nll + l2_loss
 
     def log_intermediate_results(
         self,
         iteration: int,
-        nll: mx.array,
+        loss: mx.array,
         grads: mx.array,
         magnitudes_tensor: mx.array,
         tokens_tensor: mx.array,
@@ -269,7 +292,7 @@ class AdversarialAudioExperiment:
 
         print(f"")
         print(f"  Iteration {iteration+1}")
-        print(f"    neg log likelihood  = {nll:.4f}")
+        print(f"    loss                = {loss:.4f}")
         print(f"    grads min, max      = {grads.min():+.2f}, {grads.max():+.2f}")
         print(f"    magnitudes min, max = {mt.min():+.2f}, {mt.max():+.2f}")
         print(f"")

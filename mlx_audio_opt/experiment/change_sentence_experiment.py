@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 import mlx.core as mx
@@ -79,6 +80,7 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
         log_every_n: int = 100,
         reload_audio_every_n: int = 20,
         learning_rate: float = 1e-1,
+        l2_penalty: float = 0.0,
     ):
         """Run the experiment."""
         mx.random.seed(0)
@@ -92,8 +94,9 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
 
         self._setup_target_sentence(original_tokens=self.original_tokens)
 
-        # Initialize the tensor to optimize (padded magnitudes tensor)
+        # Initialize the tensor to optimize (same shape as padded magnitudes tensor)
         magnitudes_tensor = self.spectrogram.whisper_tensor
+        self.original_magnitudes_tensor = copy.deepcopy(magnitudes_tensor)
 
         # Initialize the token tensor.
         self.tokens = self.target_tokens
@@ -107,25 +110,29 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
 
         print(f"Performing optimization:")
         print(f"  Learning rate:    {learning_rate}")
+        print(f"  L2 penalty:       {l2_penalty}")
         print(f"  Num iterations:   {num_iterations}")
         print(f"  Magnitudes shape: {magnitudes_tensor.shape}")
         print(f"  Tokens shape:     {token_tensor.shape}")
         print(f"  Transcription before:\n  {transcription_dict['sequence_str']}\n")
 
-        self._print_nll(magnitudes_tensor=magnitudes_tensor)
+        self._print_nll(
+            magnitudes_tensor=magnitudes_tensor,
+        )
 
         progressbar = tqdm(range(num_iterations), desc="Optimizing audio")
         iteration = 0
 
         for iteration in progressbar:
-            # Compute gradient of log p(target_tokens) wrt the input magnitudes
+            # Compute gradient of log p(target_tokens) wrt the input
             loss_and_grad_fn = mx.value_and_grad(
                 self.get_nll,
-                argnames="magnitudes",  # optimize loss wrt magnitudes
+                argnames="magnitudes",  # optimize loss wrt inputs
             )
-            nll, grads = loss_and_grad_fn(
+            loss, grads = loss_and_grad_fn(
                 magnitudes=magnitudes_tensor,
                 tokens=token_tensor,
+                l2_penalty=l2_penalty,
             )
             grads = grads[1]["magnitudes"]
 
@@ -136,13 +143,13 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
             magnitudes_tensor = magnitudes_tensor - learning_rate * grads
             mx.eval(magnitudes_tensor)
 
-            progressbar.set_description(f"Optimizing audio, nll = {nll:.4f}")
+            progressbar.set_description(f"Optimizing audio, loss = {loss:.4f}")
 
             # Log intermediate results every so often
             if iteration % log_every_n == 0 or iteration == num_iterations - 1:
                 self.log_intermediate_results(
                     iteration=iteration,
-                    nll=nll,
+                    loss=loss,
                     grads=grads,
                     magnitudes_tensor=magnitudes_tensor,
                     tokens_tensor=token_tensor,
@@ -158,11 +165,15 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
                     log_probs=log_probs,
                     tokenizer=self.tokenizer,
                 )
-                self._print_nll(magnitudes_tensor=magnitudes_tensor)
+                self._print_nll(
+                    magnitudes_tensor=magnitudes_tensor,
+                )
 
             # Reload audio (move to waveform and back) every so often
             if iteration % reload_audio_every_n == 0:
-                magnitudes_tensor = self.reload_audio(magnitudes_tensor)
+                magnitudes_tensor = self.reload_audio(
+                    magnitudes_tensor=magnitudes_tensor,
+                )
 
         print(f"\nOptimization finished after {iteration+1} iterations.")
         print(f"  Final audio saved to '{self.optimized_wav_file}'")
@@ -172,6 +183,8 @@ class ChangeSentenceExperiment(AdversarialAudioExperiment):
             json_file_name="transcription_after.json",
         )
         print(f"  Transcription after:\n  {transcription_dict['sequence_str']}\n")
-        self._print_nll(magnitudes_tensor=magnitudes_tensor)
+        self._print_nll(
+            magnitudes_tensor=magnitudes_tensor,
+        )
 
         return self.optimized_wav_file

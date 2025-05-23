@@ -101,8 +101,8 @@ def plot_transcription_words(
 
     if xlim is not None:
         ax.set_xlim(xlim[0], xlim[1])
-    if xlim[1] - xlim[0] > 1:
-        ax.xaxis.set_major_locator(plt.MultipleLocator(1.0))
-        ax.xaxis.set_minor_locator(plt.MultipleLocator(0.5))
+        if xlim[1] - xlim[0] > 1:
+            ax.xaxis.set_major_locator(plt.MultipleLocator(1.0))
+            ax.xaxis.set_minor_locator(plt.MultipleLocator(0.5))
 
     return

@@ -17,6 +17,7 @@ def run_optimization_experiment(
     log_every_n: int,
     reload_audio_every_n: int,
     learning_rate: float,
+    l2_penalty: float = 0.0,
     target_sentence: Optional[str] = None,
 ) -> Path:
     """Optimize given audio.
@@ -35,6 +36,7 @@ def run_optimization_experiment(
         log_every_n: How often to log progress.
         reload_audio_every_n: How often to reload audio. More often = slower!
         learning_rate: Learning rate to use for the optimization.
+        l2_penalty: L2 penalty to use for the optimization.
         target_sentence: The target sentence to push the model to produce.
             If None, we just push the model to minimize the probability of the original.
 
@@ -83,6 +85,7 @@ def run_optimization_experiment(
     optimized_wav_file = experiment.run(
         num_iterations=num_iterations,
         learning_rate=learning_rate,
+        l2_penalty=l2_penalty,
         log_every_n=log_every_n,
         reload_audio_every_n=reload_audio_every_n,
     )

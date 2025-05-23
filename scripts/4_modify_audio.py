@@ -23,6 +23,7 @@ def main(
     log_every_n: int = 250,
     reload_audio_every_n: int = 10,
     learning_rate: float = 1e-2,
+    l2_penalty: float = 0.0,
 ):
     """Modify the given audio to a target sentence.
 
@@ -43,6 +44,7 @@ def main(
         log_every_n=log_every_n,
         reload_audio_every_n=reload_audio_every_n,
         learning_rate=learning_rate,
+        l2_penalty=l2_penalty,
     )
 
 
