@@ -84,6 +84,9 @@ def plot_transcription_words(
             rotation=90,
             ha="center",
             va="bottom",
+            fontdict={
+                "fontsize": 12,
+            },
         )
 
     ax.set_ylim(0, 1.00)  # Set y-axis limit for confidence (0-1)

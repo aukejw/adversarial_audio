@@ -212,6 +212,28 @@ def render_frames(
     return frame_paths, durations
 
 
+def _format_title(
+    prefix: str,
+    words: List[str],
+) -> str:
+    """Create a plot title."""
+    if len(words) == 0:
+        return "\n"
+
+    title = prefix + ":"
+    for word_index, word in enumerate(words):
+        if word_index > 0 and word_index % 13 == 0:
+            title += "\n"
+        else:
+            title += " "
+        title += word["word"].strip()
+
+    if "\n" not in title:
+        title += "\n"
+
+    return title
+
+
 def plot_transcription_frame(
     words1_so_far: List,
     words2_so_far: List,
@@ -220,25 +242,20 @@ def plot_transcription_frame(
 ):
     """Plot transcriptions."""
 
-    fig, axes = plt.subplots(2, 1, figsize=(11, 4.5))
-
-    title = "Original: " + " ".join(word["word"].strip() for word in words1_so_far)
+    fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+    title = _format_title("Original", words1_so_far)
     plot_transcription_words(
         ax=axes[0],
         title=title,
-        title_fontsize=10,
+        title_fontsize=15,
         words=words1_so_far,
         xlim=xlim,
     )
-    title = (
-        ("Modified: " + " ".join(word["word"].strip() for word in words2_so_far))
-        if len(words2_so_far)
-        else " "
-    )
+    title = _format_title("Modified", words2_so_far)
     plot_transcription_words(
         ax=axes[1],
         title=title,
-        title_fontsize=10,
+        title_fontsize=15,
         words=words2_so_far,
         xlim=xlim,
     )
