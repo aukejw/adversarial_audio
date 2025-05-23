@@ -4,7 +4,7 @@ This project creates adversarial examples for open-weight speech models on Apple
 
 In this example, we've modified audio such that the model produces an entirely different transcription:
 
-https://github.com/user-attachments/assets/f157649a-21f2-4f1a-928d-de21bdd870ef
+https://github.com/user-attachments/assets/462eb888-bbc8-48c5-b20b-09256520b225
 
 Here, top=original audio, bottom=modified audio. Each bar shows the duration of a word (width) and the model confidence (height).
 
